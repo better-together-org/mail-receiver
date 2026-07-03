@@ -30,7 +30,34 @@ jobs:
       - name: Tests
         run: bundle exec rake test
 
-  # No publish job: this is a BTS-internal fork, not published to RubyGems.
-  # The upstream discourse/mail-receiver repo owns that gem name/publish
-  # pipeline; publishing from here would either fail (no RUBYGEMS_API_KEY)
-  # or, worse, conflict with the real upstream release.
+  # No RubyGems publish job: this is a BTS-internal fork, not published to
+  # RubyGems. The upstream discourse/mail-receiver repo owns that gem
+  # name/publish pipeline; publishing from here would either fail (no
+  # RUBYGEMS_API_KEY) or, worse, conflict with the real upstream release.
+
+  publish-image:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: |
+            ghcr.io/better-together-org/mail-receiver:latest
+            ghcr.io/better-together-org/mail-receiver:${{ github.sha }}
