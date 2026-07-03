@@ -3,6 +3,11 @@ and spawning an instance of another container to do "something" with the
 e-mail.  That's it.  All very simple and straightforward.  You would
 think...
 
+**This is a BTS fork of [discourse/mail-receiver](https://github.com/discourse/mail-receiver)**,
+extended to also speak Community Engine's ActionMailbox-based ingress
+contract (`POST` raw RFC822 body, HTTP Basic Auth) as an alternative to
+Discourse's own contract. See "Community Engine target" below.
+
 
 # Installation and Configuration
 
@@ -51,6 +56,25 @@ You may also decide whether or not to set up a Postfix server that has SPF, DKIM
 docker build --build-arg INCLUDE_DMARC=true -t local_discourse/mail-receiver:latest .
 ```
 Configurations for these checks are stored in their respective configuration files `policyd-spf.conf`, `opendkim.conf`, `opendmarc.conf` in this repository.
+
+## Community Engine target
+
+Set `MAIL_RECEIVER_TARGET=ce` to speak Community Engine's ingress contract
+instead of Discourse's. The same env vars are reused with different
+semantics for this target (this avoids touching `boot`'s validation logic,
+which requires these exact names regardless of target):
+
+* `DISCOURSE_API_USERNAME` -- the HTTP Basic Auth username. CE expects
+  `actionmailbox`.
+* `DISCOURSE_API_KEY` -- the HTTP Basic Auth password. This is CE's
+  `RAILS_INBOUND_EMAIL_PASSWORD`.
+* `DISCOURSE_MAIL_ENDPOINT` -- CE's full inbound-mail relay URL, e.g.
+  `https://communityengine.app/inbound-email/relay`.
+
+Unlike the Discourse target (form-encoded `email=<raw message>`), the CE
+target POSTs the raw RFC822 message body directly with
+`Content-Type: message/rfc822`, matching CE's `InboundEmailsController`
+contract.
 
 ## Blacklisting sender domains
 

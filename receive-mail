@@ -5,11 +5,21 @@ ENV_FILE    = "/etc/postfix/mail-receiver-environment.json"
 EX_TEMPFAIL = 75
 EX_SUCCESS  = 0
 
+require 'json'
 require 'mail_receiver/discourse_mail_receiver'
+require 'mail_receiver/ce_mail_receiver'
 
 if __FILE__ == $0
   begin
-    receiver = DiscourseMailReceiver.new(ENV_FILE, ARGV.first, $stdin.read)
+    # MAIL_RECEIVER_TARGET selects which downstream contract to speak.
+    # Read directly from the env file (not ENV) since Postfix's pipe
+    # transport does not reliably pass the container's live environment
+    # through to this subprocess -- boot already dumps the full env to
+    # ENV_FILE for exactly this reason.
+    target = JSON.parse(File.read(ENV_FILE))["MAIL_RECEIVER_TARGET"] rescue nil
+    receiver_class = target == "ce" ? CeMailReceiver : DiscourseMailReceiver
+
+    receiver = receiver_class.new(ENV_FILE, ARGV.first, $stdin.read)
     exit (receiver.process == :success) ? EX_SUCCESS : EX_TEMPFAIL
 
   rescue StandardError => ex

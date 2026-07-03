@@ -1,0 +1,6 @@
+{
+	"DISCOURSE_API_KEY": "EXAMPLE_INGRESS_PASSWORD",
+	"DISCOURSE_API_USERNAME": "actionmailbox",
+	"DISCOURSE_MAIL_ENDPOINT": "https://ce.example.com/inbound-email/relay",
+	"MAIL_RECEIVER_TARGET": "ce"
+}

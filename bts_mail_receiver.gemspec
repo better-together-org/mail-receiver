@@ -5,13 +5,14 @@ lib = File.expand_path("../lib", __FILE__)
 $LOAD_PATH.unshift(lib) if !$LOAD_PATH.include?(lib)
 
 Gem::Specification.new do |spec|
-  spec.name = "discourse_mail_receiver"
+  spec.name = "bts_mail_receiver"
   spec.version = "4.1.0"
-  spec.authors = ["Discourse Team"]
+  spec.authors = ["Discourse Team", "Better Together Solutions"]
   spec.email = ["team@discourse.org"]
-  spec.description = "A gem used to package the core .rb files of the mail-receiver."
+  spec.description =
+    "BTS fork of discourse_mail_receiver, extended with a Community Engine ingress target. Not published to RubyGems."
   spec.summary = spec.description
-  spec.homepage = "https://github.com/discourse/mail-receiver"
+  spec.homepage = "https://github.com/better-together-org/mail-receiver"
   spec.license = "MIT"
   spec.required_ruby_version = Gem::Requirement.new(">= 3.0.0")
 
