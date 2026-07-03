@@ -59,22 +59,36 @@ Configurations for these checks are stored in their respective configuration fil
 
 ## Community Engine target
 
-Set `MAIL_RECEIVER_TARGET=ce` to speak Community Engine's ingress contract
-instead of Discourse's. The same env vars are reused with different
-semantics for this target (this avoids touching `boot`'s validation logic,
-which requires these exact names regardless of target):
+A single container can serve some `MAIL_DOMAIN`s to Discourse and others to
+a Community Engine instance at the same time. List the CE-bound domains
+(a subset of `MAIL_DOMAIN`) in `CE_MAIL_DOMAINS`, space-separated:
 
-* `DISCOURSE_API_USERNAME` -- the HTTP Basic Auth username. CE expects
+```
+MAIL_DOMAIN="bayofislands.example.com communityengine.example.com"
+CE_MAIL_DOMAINS="communityengine.example.com"
+```
+
+Any domain in `CE_MAIL_DOMAINS` gets routed to the CE ingress contract
+(raw RFC822 body, `Content-Type: message/rfc822`, HTTP Basic Auth) instead
+of Discourse's own form-encoded `/admin/email/handle_mail` contract.
+Domains not listed keep the existing Discourse behavior unchanged.
+
+Routing is selected per-domain at the Postfix transport level (not by a
+single container-wide setting), via `receive-mail --target=ce`, so both
+targets can genuinely coexist. This means CE needs its own, separate
+credentials from Discourse's:
+
+* `CE_API_USERNAME` -- the HTTP Basic Auth username. CE expects
   `actionmailbox`.
-* `DISCOURSE_API_KEY` -- the HTTP Basic Auth password. This is CE's
+* `CE_API_KEY` -- the HTTP Basic Auth password. This is CE's
   `RAILS_INBOUND_EMAIL_PASSWORD`.
-* `DISCOURSE_MAIL_ENDPOINT` -- CE's full inbound-mail relay URL, e.g.
+* `CE_MAIL_ENDPOINT` -- CE's full inbound-mail relay URL, e.g.
   `https://communityengine.app/inbound-email/relay`.
 
-Unlike the Discourse target (form-encoded `email=<raw message>`), the CE
-target POSTs the raw RFC822 message body directly with
-`Content-Type: message/rfc822`, matching CE's `InboundEmailsController`
-contract.
+These are only required if `CE_MAIL_DOMAINS` is non-empty. Likewise,
+`DISCOURSE_API_KEY`/`DISCOURSE_API_USERNAME`/`DISCOURSE_BASE_URL`(or
+`DISCOURSE_MAIL_ENDPOINT`) are only required if at least one `MAIL_DOMAIN`
+is *not* listed in `CE_MAIL_DOMAINS` (i.e. still routes to Discourse).
 
 ## Blacklisting sender domains
 

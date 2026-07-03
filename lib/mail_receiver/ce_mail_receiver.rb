@@ -9,15 +9,23 @@ require_relative "mail_receiver_base"
 # (POST raw RFC822 body, HTTP Basic Auth) instead of Discourse's own
 # form-encoded /admin/email/handle_mail contract.
 #
-# Reuses the same env var names as DiscourseMailReceiver so `boot`'s
-# validation logic doesn't need to change. For a "ce" target the
-# semantics shift: DISCOURSE_API_USERNAME holds the Basic Auth username
-# (CE expects "actionmailbox"), DISCOURSE_API_KEY holds the Basic Auth
-# password (CE's RAILS_INBOUND_EMAIL_PASSWORD), and DISCOURSE_MAIL_ENDPOINT
-# holds CE's full /inbound-email/relay URL.
+# Deliberately does not call super(env_file): MailReceiverBase's
+# constructor enforces DISCOURSE_API_KEY/DISCOURSE_API_USERNAME/
+# DISCOURSE_MAIL_ENDPOINT, which is the wrong contract here. A single
+# container can host both a Discourse domain and a CE domain at once
+# (see boot's CE_MAIL_DOMAINS handling), each with its own distinct
+# credentials, so this uses independently-named CE_API_KEY/
+# CE_API_USERNAME/CE_MAIL_ENDPOINT env vars instead.
 class CeMailReceiver < MailReceiverBase
   def initialize(env_file = nil, recipient = nil, mail = nil)
-    super(env_file)
+    unless env_file && File.exist?(env_file)
+      fatal "Config file %s does not exist. Aborting.", env_file
+    end
+    @env = JSON.parse(File.read(env_file))
+
+    %w[CE_API_KEY CE_API_USERNAME CE_MAIL_ENDPOINT].each do |kw|
+      fatal "env var %s is required for the ce target", kw unless @env[kw]
+    end
 
     @recipient = recipient
     @mail = mail
@@ -27,12 +35,16 @@ class CeMailReceiver < MailReceiverBase
     fatal "No message passed on stdin." if @mail.nil? || @mail.empty?
   end
 
+  def key
+    @env["CE_API_KEY"]
+  end
+
+  def username
+    @env["CE_API_USERNAME"]
+  end
+
   def endpoint
-    @endpoint ||=
-      @env["DISCOURSE_MAIL_ENDPOINT"] ||
-        fatal(
-          "DISCOURSE_MAIL_ENDPOINT (the CE /inbound-email/relay URL) is required for the ce target",
-        )
+    @env["CE_MAIL_ENDPOINT"]
   end
 
   def process

@@ -21,6 +21,16 @@ RSpec.describe CeMailReceiver do
     )
   end
 
+  it "raises an error if the env file doesn't have CE_API_KEY" do
+    expect { described_class.new(file_for(:ce_missing_key), recipient, mail) }.to raise_error(
+      MailReceiverBase::ReceiverException,
+    )
+  end
+
+  it "does not require Discourse-specific env vars" do
+    expect { described_class.new(file_for(:ce_standard), recipient, mail) }.not_to raise_error
+  end
+
   it "has the correct endpoint" do
     receiver = described_class.new(file_for(:ce_standard), recipient, mail)
     expect(receiver.endpoint).to eq("https://ce.example.com/inbound-email/relay")

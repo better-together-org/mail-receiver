@@ -35,6 +35,7 @@ RUN >/etc/postfix/main.cf \
        fi \
 	&& postconf -M -e 'smtp/inet=smtp inet n - n - - smtpd' \
 	&& postconf -M -e 'discourse/unix=discourse unix - n n - - pipe user=nobody:nogroup argv=/usr/local/bin/receive-mail ${recipient}' \
+	&& postconf -M -e 'ce/unix=ce unix - n n - - pipe user=nobody:nogroup argv=/usr/local/bin/receive-mail --target=ce ${recipient}' \
     && if [ "$INCLUDE_DMARC" = "true" ]; then \
           postconf -M -e 'policyd-spf/unix=policyd-spf unix - n n - - spawn user=nobody argv=/usr/bin/policyd-spf'; \
        fi \

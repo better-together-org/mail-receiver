@@ -20,25 +20,56 @@ if [ -z "$MAIL_DOMAIN" ]; then
 	exit 1
 fi
 
+# CE_MAIL_DOMAINS is a space-separated subset of MAIL_DOMAIN that should
+# route to the Community Engine target instead of Discourse. A single
+# container can serve both kinds of domain at once, each with its own
+# distinct credentials (DISCOURSE_* vs CE_*).
 /usr/sbin/postconf -e relay_domains="$MAIL_DOMAIN"
 rm -f /etc/postfix/transport
+ce_domain_count=0
+discourse_domain_count=0
 for d in $MAIL_DOMAIN; do
-	echo "Delivering mail sent to $d to Discourse" >&2
-	/bin/echo "$d discourse:" >>/etc/postfix/transport
+	is_ce=0
+	for ced in $CE_MAIL_DOMAINS; do
+		if [ "$d" = "$ced" ]; then is_ce=1; fi
+	done
+	if [ "$is_ce" = "1" ]; then
+		echo "Delivering mail sent to $d to Community Engine" >&2
+		/bin/echo "$d ce:" >>/etc/postfix/transport
+		ce_domain_count=$((ce_domain_count + 1))
+	else
+		echo "Delivering mail sent to $d to Discourse" >&2
+		/bin/echo "$d discourse:" >>/etc/postfix/transport
+		discourse_domain_count=$((discourse_domain_count + 1))
+	fi
 done
 /usr/sbin/postmap /etc/postfix/transport
 
-# Make sure the necessary Discourse connection details are in place
-for v in DISCOURSE_API_KEY DISCOURSE_API_USERNAME; do
-	if [ -z "${!v}" ]; then
-		echo "FATAL ERROR: $v env var is not set." >&2
+# Make sure the necessary Discourse connection details are in place, but
+# only if at least one MAIL_DOMAIN actually routes there.
+if [ "$discourse_domain_count" -gt 0 ]; then
+	for v in DISCOURSE_API_KEY DISCOURSE_API_USERNAME; do
+		if [ -z "${!v}" ]; then
+			echo "FATAL ERROR: $v env var is not set (required: at least one MAIL_DOMAIN routes to Discourse)." >&2
+			exit 1
+		fi
+	done
+
+	if [ -z "$DISCOURSE_BASE_URL" ] && [ -z "$DISCOURSE_MAIL_ENDPOINT" ] ; then
+		echo "FATAL ERROR: You need to define DISCOURSE_BASE_URL or DISCOURSE_MAIL_ENDPOINT" >&2
 		exit 1
 	fi
-done
+fi
 
-if [ -z "$DISCOURSE_BASE_URL" ] && [ -z "$DISCOURSE_MAIL_ENDPOINT" ] ; then
-	echo "FATAL ERROR: You need to define DISCOURSE_BASE_URL or DISCOURSE_MAIL_ENDPOINT" >&2
-	exit 1
+# Make sure the necessary CE connection details are in place, but only if
+# at least one MAIL_DOMAIN actually routes there.
+if [ "$ce_domain_count" -gt 0 ]; then
+	for v in CE_API_KEY CE_API_USERNAME CE_MAIL_ENDPOINT; do
+		if [ -z "${!v}" ]; then
+			echo "FATAL ERROR: $v env var is not set (required: at least one MAIL_DOMAIN routes to Community Engine)." >&2
+			exit 1
+		fi
+	done
 fi
 
 # Generic postfix config setting code... bashers gonna bash.
