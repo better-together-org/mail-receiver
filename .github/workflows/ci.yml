@@ -25,7 +25,7 @@ jobs:
       - name: Syntax Tree
         run: |
           set -E
-          bundle exec stree check Gemfile discourse_mail_receiver.gemspec $(git ls-files '*.rb')
+          bundle exec stree check Gemfile bts_mail_receiver.gemspec $(git ls-files '*.rb')
 
       - name: Tests
         run: bundle exec rake test

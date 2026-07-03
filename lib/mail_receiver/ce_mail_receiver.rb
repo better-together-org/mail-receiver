@@ -30,7 +30,9 @@ class CeMailReceiver < MailReceiverBase
   def endpoint
     @endpoint ||=
       @env["DISCOURSE_MAIL_ENDPOINT"] ||
-        fatal("DISCOURSE_MAIL_ENDPOINT (the CE /inbound-email/relay URL) is required for the ce target")
+        fatal(
+          "DISCOURSE_MAIL_ENDPOINT (the CE /inbound-email/relay URL) is required for the ce target",
+        )
   end
 
   def process
