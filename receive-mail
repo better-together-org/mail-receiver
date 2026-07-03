@@ -6,10 +6,27 @@ EX_TEMPFAIL = 75
 EX_SUCCESS  = 0
 
 require 'mail_receiver/discourse_mail_receiver'
+require 'mail_receiver/ce_mail_receiver'
 
 if __FILE__ == $0
   begin
-    receiver = DiscourseMailReceiver.new(ENV_FILE, ARGV.first, $stdin.read)
+    # A single container can serve multiple MAIL_DOMAINs routed to
+    # different downstream targets (see boot's CE_MAIL_DOMAINS handling).
+    # Each Postfix transport passes its own static argv, so the target is
+    # selected per-invocation via --target=<name>, defaulting to
+    # "discourse" for unchanged backwards compatibility with existing
+    # single-target deployments that never pass this flag.
+    args = ARGV.dup
+    target = "discourse"
+    if args.first =~ /\A--target=(.+)\z/
+      target = Regexp.last_match(1)
+      args.shift
+    end
+    recipient = args.first
+
+    receiver_class = target == "ce" ? CeMailReceiver : DiscourseMailReceiver
+
+    receiver = receiver_class.new(ENV_FILE, recipient, $stdin.read)
     exit (receiver.process == :success) ? EX_SUCCESS : EX_TEMPFAIL
 
   rescue StandardError => ex

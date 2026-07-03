@@ -1,0 +1,4 @@
+{
+	"CE_API_USERNAME": "actionmailbox",
+	"CE_MAIL_ENDPOINT": "https://ce.example.com/inbound-email/relay"
+}

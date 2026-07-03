@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    discourse_mail_receiver (4.1.0)
+    bts_mail_receiver (4.1.0)
       mail (~> 2.7.1)
       net-smtp (~> 0.3.3)
 
@@ -36,7 +36,7 @@ GEM
     mutex_m (0.2.0)
     net-protocol (0.2.2)
       timeout
-    net-smtp (0.3.3)
+    net-smtp (0.3.4)
       net-protocol
     parallel (1.25.1)
     parser (3.3.4.0)
@@ -101,7 +101,7 @@ GEM
     syntax_tree (6.2.0)
       prettier_print (>= 1.2.0)
     syntax_tree-disable_ternary (1.0.0)
-    timeout (0.4.1)
+    timeout (0.6.1)
     tzinfo (2.0.6)
       concurrent-ruby (~> 1.0)
     unicode-display_width (2.5.0)
@@ -110,7 +110,7 @@ PLATFORMS
   ruby
 
 DEPENDENCIES
-  discourse_mail_receiver!
+  bts_mail_receiver!
   rake
   rspec
   rubocop-discourse

@@ -3,6 +3,11 @@ and spawning an instance of another container to do "something" with the
 e-mail.  That's it.  All very simple and straightforward.  You would
 think...
 
+**This is a BTS fork of [discourse/mail-receiver](https://github.com/discourse/mail-receiver)**,
+extended to also speak Community Engine's ActionMailbox-based ingress
+contract (`POST` raw RFC822 body, HTTP Basic Auth) as an alternative to
+Discourse's own contract. See "Community Engine target" below.
+
 
 # Installation and Configuration
 
@@ -51,6 +56,39 @@ You may also decide whether or not to set up a Postfix server that has SPF, DKIM
 docker build --build-arg INCLUDE_DMARC=true -t local_discourse/mail-receiver:latest .
 ```
 Configurations for these checks are stored in their respective configuration files `policyd-spf.conf`, `opendkim.conf`, `opendmarc.conf` in this repository.
+
+## Community Engine target
+
+A single container can serve some `MAIL_DOMAIN`s to Discourse and others to
+a Community Engine instance at the same time. List the CE-bound domains
+(a subset of `MAIL_DOMAIN`) in `CE_MAIL_DOMAINS`, space-separated:
+
+```
+MAIL_DOMAIN="bayofislands.example.com communityengine.example.com"
+CE_MAIL_DOMAINS="communityengine.example.com"
+```
+
+Any domain in `CE_MAIL_DOMAINS` gets routed to the CE ingress contract
+(raw RFC822 body, `Content-Type: message/rfc822`, HTTP Basic Auth) instead
+of Discourse's own form-encoded `/admin/email/handle_mail` contract.
+Domains not listed keep the existing Discourse behavior unchanged.
+
+Routing is selected per-domain at the Postfix transport level (not by a
+single container-wide setting), via `receive-mail --target=ce`, so both
+targets can genuinely coexist. This means CE needs its own, separate
+credentials from Discourse's:
+
+* `CE_API_USERNAME` -- the HTTP Basic Auth username. CE expects
+  `actionmailbox`.
+* `CE_API_KEY` -- the HTTP Basic Auth password. This is CE's
+  `RAILS_INBOUND_EMAIL_PASSWORD`.
+* `CE_MAIL_ENDPOINT` -- CE's full inbound-mail relay URL, e.g.
+  `https://communityengine.app/inbound-email/relay`.
+
+These are only required if `CE_MAIL_DOMAINS` is non-empty. Likewise,
+`DISCOURSE_API_KEY`/`DISCOURSE_API_USERNAME`/`DISCOURSE_BASE_URL`(or
+`DISCOURSE_MAIL_ENDPOINT`) are only required if at least one `MAIL_DOMAIN`
+is *not* listed in `CE_MAIL_DOMAINS` (i.e. still routes to Discourse).
 
 ## Blacklisting sender domains
 

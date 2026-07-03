@@ -25,22 +25,12 @@ jobs:
       - name: Syntax Tree
         run: |
           set -E
-          bundle exec stree check Gemfile discourse_mail_receiver.gemspec $(git ls-files '*.rb')
+          bundle exec stree check Gemfile bts_mail_receiver.gemspec $(git ls-files '*.rb')
 
       - name: Tests
         run: bundle exec rake test
 
-  publish:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    needs: build
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Release Gem
-        uses: discourse/publish-rubygems-action@v3
-        env:
-          RUBYGEMS_API_KEY: ${{ secrets.RUBYGEMS_API_KEY }}
-          GIT_EMAIL: team@discourse.org
-          GIT_NAME: discoursebot
+  # No publish job: this is a BTS-internal fork, not published to RubyGems.
+  # The upstream discourse/mail-receiver repo owns that gem name/publish
+  # pipeline; publishing from here would either fail (no RUBYGEMS_API_KEY)
+  # or, worse, conflict with the real upstream release.
